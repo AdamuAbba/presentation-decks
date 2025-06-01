@@ -115,10 +115,14 @@ How to Get Started
 What Are Events?
 ---
 
+<!-- column_layout: [2,3] -->
+
+<!-- column: 0 -->
+- Repo  : [](https://github.com/nostr-protocol/nips#event-kinds)
 - JSON objects signed with your private key
 - Basic structure:
 
-```json
+```json +line_numbers
 {
   "id": "...",
   "pubkey": "...",
@@ -136,8 +140,18 @@ What Are Events?
   - `1`: text note
   - `3`: contacts
   - `4`: encrypted DMs
-  - See More  : [](https://github.com/nostr-protocol/nips#event-kinds)
 
+<!-- column: 1 -->
+> [!Note]
+>
+> - An unsigned Nostr event lacks a valid sig field.
+> - Relays reject unsigned events as per NIP-01.
+> - The sig proves authorship and is computed over the event id.
+> - The id is the SHA-256 hash of a JSON-serialized array:[0, pubkey, created_at, kind, tags, content].
+> - Unsigned events are sometimes used temporarily before signing.
+
+![image:width:100%](./assets/nostr_event.jpeg)
+[](https://seha.cc/nostr-101/)
 <!-- end_slide -->
 
 Clients
@@ -181,41 +195,54 @@ source: [](https://www.nobsbitcoin.com/primal-added-search-functionality/)
 Relays
 ---
 
-- Relays store and serve events via WebSocket APIs
-- Anyone can run a relay
-- Clients connect to many relays at once
-- Relays don’t validate content—they just relay it
+- Repo  [NIP-11 Relay metadata]: <https://github.com/nostr-protocol/nips/blob/master/11.md>
+- Relays are servers that transmit Nostr events between clients.
+- They use **WebSocket** connections to receive and send events.
+- Relays are **dumb**: they don’t judge or censor content (by default) but they do perform minimal event validation.  
+- Events are pushed by clients (`EVENT`) and retrieved via subscriptions (`REQ`).
+- Relays can **filter**, **store**, or **ignore** events based on policies.
+- Clients can connect to multiple relays simultaneously.  
+- No central server — anyone can run a relay.
+- Examples:
 
-🔗 [Run Your Own Relay](https://github.com/scsibug/nostr-rs-relay)
+  - `wss://relay.damus.io`  
+  - `wss://nos.lol`  
+  - `wss://relay.nostr.band`  
+  - `wss://nostr.wine`  
+  - `wss://nostr.mom`  
+  - `wss://nostr-pub.wellorder.net`
 
+<!-- column_layout: [1, 3, 1] -->
+<!-- column: 1 -->
+![image:width:100%](./assets/nostr_relay_2.jpg)
+
+[](https://apps.umbrel.com/app/nostr-relay)
 <!-- end_slide -->
 
 Nostr Wallet Connect (NWC)
 ---
-
-# What is NWC?
 
 - Repo  : [](https://github.com/nostr-protocol/nips/blob/master/47.md)
 - A protocol for interacting with Lightning wallets via Nostr events  
 - Lets clients (e.g. apps) request payments or invoices from user's wallet  
 - Built using regular Nostr events (e.g. `kind:23194` for payment requests)
 
-## How It Works
+# How It Works
 
 - User links their wallet (e.g. Alby, Mutiny) to a Nostr identity  
 - App/client sends an event to the wallet's pubkey with payment request  
 - Wallet responds with invoice or confirms payment
 
-## Use Cases
+# Use Cases
 
-- Tipping content creators  
-- Pay-to-unlock content  
+- Tipping content creators
+- Pay-to-unlock content
 - Microtransactions for access/features
 
-## Supported Wallets
+# Supported Wallets
 
-- [Alby](https://getalby.com)  
-- [Mutiny Wallet](https://mutinywallet.com)  
+- [Alby](https://getalby.com)
+- [Mutiny Wallet](https://mutinywallet.com)
 - [Zeus](https://zeusln.app) (experimental)
 
 <!-- end_slide -->
@@ -257,8 +284,39 @@ NIP-01 Deep Dive
 }
 ```
 
-- No schema registry—flexibility by design
+<!-- column_layout: [2,1,2] -->
+<!-- column: 0 -->
+# Client -> Relay (Request)
 
+- Communication via WebSocket.
+- Clients connect to relay endpoints; one WebSocket per relay.
+- Client messages (JSON arrays):
+  - `["EVENT", <event>]` — publish event
+  - `["REQ", <subscription_id>, <filters1>, ...]` — request/subscribe
+  - `["CLOSE", <subscription_id>]` — end subscription
+- `<subscription_id>`: unique per connection, string, max 64 chars.
+- `<filtersX>`: JSON object for filtering (ids, authors, kinds, tags, time range, limit).
+- Multiple filters in `REQ` = OR; multiple conditions in filter = AND.
+
+<!-- column: 1 -->
+<!-- new_lines: 5 -->
+
+<!-- new_line -->
+
+
+<!-- column: 2 -->
+# Relay -> Client (Response)
+
+- Relay messages (JSON arrays):
+  - `["EVENT", <subscription_id>, <event>]` — send event to client
+  - `["OK", <event_id>, <true|false>, <message>]` — accept/deny event
+  - `["EOSE", <subscription_id>]` — end of stored events
+  - `["CLOSED", <subscription_id>, <message>]` — server closed subscription
+  - `["NOTICE", <message>]` — human-readable message/error
+- `EVENT` uses valid subscription IDs only.
+- `OK` always replies to `EVENT`, indicates accept/deny.
+- `CLOSED` replies to `REQ` if refused or relay ends subscription.
+- Standard error prefixes: duplicate, pow, blocked, rate-limited, invalid, restricted, error.
 <!-- end_slide -->
 
 Next Steps
@@ -278,7 +336,6 @@ Next Steps
 - collection of NOSTR repos => [](https://github.com/aljazceru/awesome-nostr/blob/main/README.md)
 
 <!-- end_slide -->
-
 Thank you
 ---
 <!-- column_layout: [1, 3, 1] -->
